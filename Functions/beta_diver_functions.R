@@ -25,7 +25,7 @@ set.seed(1234)
 ######### Read infile FUNCTIONS #
 #################################
 
-filter_otu_table <- function(in_phylo = phyloseq(), Samples = data.frame(), prev = 0.2, Tax_level = "Genus"){
+filter_otu_table <- function(in_phylo = phyloseq(), Samples = data.frame(), prev = 0.2, Tax_level = "none"){ # Genus  Species none
 
 	in_phylo <- prune_samples( Samples , in_phylo)
 	Prevalence <- prevalence(in_phylo)
@@ -39,6 +39,9 @@ filter_otu_table <- function(in_phylo = phyloseq(), Samples = data.frame(), prev
 	if(Tax_level == "Species"){
 		rownames(otable) <- as.character(table[,7])	
 	}
+	if(Tax_level == "SGB"){
+		rownames(otable) <- as.character(table[,8])	
+	}	
 	taxa_matrix <- t(otable)
 	taxa_matrix <-taxa_matrix[match( Samples , rownames(taxa_matrix)),]
 	return(taxa_matrix)

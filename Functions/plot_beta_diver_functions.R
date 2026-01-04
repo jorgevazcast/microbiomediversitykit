@@ -2,16 +2,42 @@ set.seed(12345)
 library(phyloseq)
 library("ggplot2")
 library(ggpubr)
-source("/home/luna.kuleuven.be/u0141268/Postdoc_Raes/Projects/DISCOVERIE/Functions/beta_diver_functions_V9.R")
+source("/home/luna.kuleuven.be/u0141268/github_projects/microbiomediversitykit/Functions/beta_diver_functions.R")
 library(gridExtra)
 library(RColorBrewer)
 library(microbiome)
 library("viridis") 
 
+######################
+##### Donut plot #####
+total_variance_donut_plot <- function(capscale2plot){
+	colors2use <- c("#21908c","gray")
+	NU_df <- capscale2plot[["nr_sig"]]
+	NU_df <- NU_df[ c( dim(NU_df)[1] -1, dim(NU_df)[1]) , ]
+	# Compute percentages
+	NU_df$fraction = NU_df$R2 / sum(NU_df$R2)
+	# Compute the cumulative percentages (top of each rectangle)
+	NU_df$ymax = cumsum(NU_df$fraction)
+	# Compute the bottom of each rectangle
+	NU_df$ymin = c(0, head(NU_df$ymax, n=-1))
+	NU_df$labelPosition <- (NU_df$ymax + NU_df$ymin) / 2
+	NU_df$label <- paste( (as.character(NU_df$Variance)),  round(NU_df$R2, digits = 3) )
+	# Make the plot
+	ploar_plot <- ggplot(NU_df, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Variance)) + geom_rect() + scale_fill_manual(values=colors2use) +
+		#geom_text( x=3.5, aes(y=labelPosition, label=label, color=Variance), size=6) + # x here controls label position (inner / outer)
+		geom_text( x=3.5, aes(y=labelPosition, label=label ), size=4) + # x here controls label position (inner / outer)
+		coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
+		xlim(c(2, 4)) + theme_void() +# Try to remove that to see how to make a pie chart
+		ggtitle("Total Variation Explained")
+	return(ploar_plot)
+}
+
+######################
+##### PCoA plot #####
 PCoA_grapper <- function(Var = "", tempMetadata = data.frame(), table.ADONIS=data.frame(),
 		taxa_matrix=matrix(), distance="bray", Ellipses = F, Label = F,colors = c() ){
 
-	tempMetadata$VarTemp <- tempMetadata[,Var]
+	tempMetadata$VarTemp <- tempMetadata[[Var]]
 	tempMetadata <- tempMetadata[complete.cases(tempMetadata$VarTemp),]
 	taxa_matrix <- taxa_matrix[match( rownames(tempMetadata), rownames(taxa_matrix)),]
 	#print(table(is.na(taxa_matrix)))
@@ -69,7 +95,10 @@ PCoA_grapper <- function(Var = "", tempMetadata = data.frame(), table.ADONIS=dat
 			}						
 			
 			if(Label == T){
-				subdf_factors <- df_factors[grep( Var,  df_factors$var ),]
+				levels_var <- unique(tempMetadata$VarTemp)  
+				pattern <- paste0("^",Var,"(", paste(levels_var, collapse = "|"), ")$")
+
+				subdf_factors <- df_factors[grep( pattern,  df_factors$var ),]
 				subdf_factors$var <- gsub(Var,"",subdf_factors$var)
 							
 				PCoAplot <- PCoAplot + 
